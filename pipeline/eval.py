@@ -20,8 +20,14 @@ CATEGORIES = [
     "shares_with_providers",
     "keeps_data",
     "can_opt_out",
+    "auto_renews",
+    "trial_converts_to_paid",
+    "hard_to_cancel",
+    "no_refund",
+    "price_can_increase",
+    "early_termination_fee",
 ]
-RED = {"arbitration", "shares_for_ads"}
+RED = {"arbitration", "shares_for_ads", "trial_converts_to_paid", "hard_to_cancel", "no_refund", "price_can_increase", "early_termination_fee"}
 
 
 def ask(url, text):

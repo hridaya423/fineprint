@@ -1,0 +1,59 @@
+{
+  "server": "http://127.0.0.1:8081",
+  "rows": 2159,
+  "seconds": 597.6,
+  "json_valid": 1.0,
+  "micro_f1": 0.7373,
+  "macro_f1": 0.7678,
+  "flag_detection_f1": 0.83,
+  "red_flag_f1": 0.8242,
+  "unflagged_clauses_wrongly_flagged": 62,
+  "per_category_f1": {
+    "limitation_of_liability": 0.725,
+    "unilateral_termination": 0.761,
+    "unilateral_change": 0.778,
+    "content_removal": 0.714,
+    "contract_by_using": 0.727,
+    "choice_of_law": 0.923,
+    "jurisdiction": 0.938,
+    "arbitration": 0.8,
+    "shares_for_ads": 0.827,
+    "shares_with_providers": 0.725,
+    "keeps_data": 0.65,
+    "can_opt_out": 0.647
+  },
+  "privacy": {
+    "rows": 552,
+    "json_valid": 1.0,
+    "micro_f1": 0.7301,
+    "macro_f1": 0.7257,
+    "flag_detection_f1": 0.8447,
+    "red_flag_f1": 0.8267,
+    "unflagged_clauses_wrongly_flagged": 28,
+    "per_category_f1": {
+      "shares_for_ads": 0.827,
+      "shares_with_providers": 0.766,
+      "keeps_data": 0.65,
+      "can_opt_out": 0.661
+    }
+  },
+  "tos": {
+    "rows": 1607,
+    "json_valid": 1.0,
+    "micro_f1": 0.7514,
+    "macro_f1": 0.8126,
+    "flag_detection_f1": 0.8023,
+    "red_flag_f1": 0.8,
+    "unflagged_clauses_wrongly_flagged": 34,
+    "per_category_f1": {
+      "limitation_of_liability": 0.725,
+      "unilateral_termination": 0.771,
+      "unilateral_change": 0.8,
+      "content_removal": 0.714,
+      "contract_by_using": 0.8,
+      "choice_of_law": 0.923,
+      "jurisdiction": 0.968,
+      "arbitration": 0.8
+    }
+  }
+}

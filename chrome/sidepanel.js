@@ -310,6 +310,14 @@ function createCard(finding, job) {
 
 async function select(card, finding, job) {
   const findings = current.root.querySelector(".findings");
+  if (current.selected === card) {
+    flip(findings, () => {
+      card.classList.remove("selected");
+      card.querySelector(".card-hit").setAttribute("aria-expanded", "false");
+    });
+    current.selected = null;
+    return;
+  }
   flip(findings, () => {
     if (current.selected && current.selected !== card) {
       current.selected.classList.remove("selected");

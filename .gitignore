@@ -2,3 +2,4 @@ models/
 checkpoints/
 data/
 pipeline/__pycache__/
+fineprint-extension.zip

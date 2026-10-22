@@ -17,15 +17,15 @@ Fineprint: a local model (LFM2.5-1.2B, fine-tuned with White Circle Halo) reads 
 - `pipeline/build_data.py assemble` writes `data/train.jsonl` (Halo chat records) and `data/test.jsonl`.
 - Run with `uv run --no-project --with datasets python -I pipeline/build_data.py <export|assemble>`.
 
-## Train and evaluate (H200)
+## Train (H200) and evaluate (Mac)
 
 1. Add the host to `~/.ssh/config` as `h200`, with `IdentityFile ~/.ssh/h200_hackathon_ed25519`.
-2. `pipeline/h200.sh setup`, then `pipeline/h200.sh push`.
-3. Baseline: `pipeline/h200.sh eval LiquidAI/LFM2.5-1.2B-Instruct base`.
-4. `pipeline/h200.sh train` (config `pipeline/sft.yaml`: full fine-tune, 3 epochs, lr 2e-5).
-5. `pipeline/h200.sh eval checkpoints/fineprint-1.2b ft-v1`, then `pipeline/h200.sh pull`.
-6. `pipeline/export_gguf.sh models/fineprint-hf fineprint` writes Q8_0 and Q4_K_M GGUF files to `models/`.
-7. Serve the fine-tuned model: `llama-server -m models/fineprint-Q8_0.gguf --port 8081 -np 4 -c 16384`. The base model runs on port 8080.
+2. `pipeline/h200.sh push` (copies the repo to `/data/fineprint`; Halo is preinstalled in `/workspace`).
+3. `pipeline/h200.sh train` (config `pipeline/sft.yaml`: full fine-tune, 3 epochs, lr 2e-5). Override per run, for example `pipeline/h200.sh train --learning_rate=1e-5`.
+4. `pipeline/h200.sh pull` copies the final checkpoint to `models/fineprint-hf/`.
+5. `pipeline/export_gguf.sh models/fineprint-hf fineprint` writes Q8_0 and Q4_K_M GGUF files to `models/`.
+6. Serve it: `llama-server -m models/fineprint-Q8_0.gguf --port 8081 -np 4 -c 16384`. The base model runs on port 8080.
+7. Score the shipped GGUF: `python3 -I pipeline/eval.py http://127.0.0.1:8081 ft-v1`. The base score is `eval/base-q8/metrics.json`.
 
 ## Status
 

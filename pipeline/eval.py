@@ -1,9 +1,9 @@
 import json
 import sys
+import time
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
 ROOT = Path(__file__).resolve().parent.parent
 PROMPT = (ROOT / "prompt.txt").read_text().strip()
@@ -16,7 +16,19 @@ CATEGORIES = [
     "choice_of_law",
     "jurisdiction",
     "arbitration",
+    "shares_for_ads",
+    "shares_with_providers",
+    "keeps_data",
+    "can_opt_out",
 ]
+RED = {"arbitration", "shares_for_ads"}
+
+
+def ask(url, text):
+    body = {"messages": [{"role": "system", "content": PROMPT}, {"role": "user", "content": text}], "temperature": 0, "max_tokens": 96}
+    request = urllib.request.Request(f"{url}/v1/chat/completions", json.dumps(body).encode(), {"Content-Type": "application/json"})
+    with urllib.request.urlopen(request, timeout=120) as response:
+        return json.loads(response.read())["choices"][0]["message"]["content"]
 
 
 def parse(reply):
@@ -31,45 +43,45 @@ def f1(tp, fp, fn):
     return 2 * tp / (2 * tp + fp + fn) if tp else 0.0
 
 
-def main(model_path, name, limit=None):
-    rows = [json.loads(line) for line in (ROOT / "data/test.jsonl").read_text().splitlines()][:limit]
-    tokenizer = AutoTokenizer.from_pretrained(model_path, padding_side="left")
-    model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.bfloat16, device_map="cuda").eval()
-
-    replies = []
-    for start in range(0, len(rows), 64):
-        chats = [[{"role": "system", "content": PROMPT}, {"role": "user", "content": r["text"]}] for r in rows[start:start + 64]]
-        batch = tokenizer.apply_chat_template(chats, add_generation_prompt=True, return_tensors="pt", padding=True, return_dict=True).to("cuda")
-        with torch.no_grad():
-            out = model.generate(**batch, max_new_tokens=96, do_sample=False)
-        replies += tokenizer.batch_decode(out[:, batch["input_ids"].shape[1]:], skip_special_tokens=True)
-
+def score(examples):
     counts = {c: [0, 0, 0] for c in CATEGORIES}
-    flagged = [0, 0, 0]
-    valid, examples = 0, []
-    for row, reply in zip(rows, replies):
-        predicted, ok = parse(reply)
-        gold = set(row["flags"])
+    flagged, red, valid = [0, 0, 0], [0, 0, 0], 0
+    for e in examples:
+        predicted, ok = parse(e["reply"])
+        gold = set(e["gold"])
         valid += ok
         for c in CATEGORIES:
             counts[c][0] += c in predicted and c in gold
             counts[c][1] += c in predicted and c not in gold
             counts[c][2] += c not in predicted and c in gold
-        flagged[0] += bool(predicted) and bool(gold)
-        flagged[1] += bool(predicted) and not gold
-        flagged[2] += not predicted and bool(gold)
-        examples.append({"text": row["text"], "gold": sorted(gold), "reply": reply})
-
+        for tally, p, g in ((flagged, predicted, gold), (red, predicted & RED, gold & RED)):
+            tally[0] += bool(p) and bool(g)
+            tally[1] += bool(p) and not g
+            tally[2] += not p and bool(g)
+    present = [c for c in CATEGORIES if counts[c][0] + counts[c][2]]
     totals = [sum(v[i] for v in counts.values()) for i in range(3)]
-    result = {
-        "model": model_path,
-        "rows": len(rows),
-        "json_valid": valid / len(rows),
-        "micro_f1": f1(*totals),
-        "macro_f1": sum(f1(*v) for v in counts.values()) / len(CATEGORIES),
-        "unfair_detection_f1": f1(*flagged),
-        "per_category_f1": {c: round(f1(*v), 3) for c, v in counts.items()},
+    return {
+        "rows": len(examples),
+        "json_valid": round(valid / len(examples), 4),
+        "micro_f1": round(f1(*totals), 4),
+        "macro_f1": round(sum(f1(*counts[c]) for c in present) / len(present), 4),
+        "flag_detection_f1": round(f1(*flagged), 4),
+        "red_flag_f1": round(f1(*red), 4),
+        "unflagged_clauses_wrongly_flagged": flagged[1],
+        "per_category_f1": {c: round(f1(*counts[c]), 3) for c in present},
     }
+
+
+def main(url, name, limit=None):
+    rows = [json.loads(line) for line in (ROOT / "data/test.jsonl").read_text().splitlines()][:limit]
+    started = time.time()
+    with ThreadPoolExecutor(4) as pool:
+        replies = list(pool.map(lambda r: ask(url, r["text"]), rows))
+
+    examples = [{"text": r["text"], "gold": r["flags"], "source": r.get("source", "tos"), "reply": reply} for r, reply in zip(rows, replies)]
+    result = {"server": url, "rows": len(rows), "seconds": round(time.time() - started, 1), **score(examples)}
+    for source in sorted({e["source"] for e in examples}):
+        result[source] = score([e for e in examples if e["source"] == source])
     out = ROOT / "eval" / name
     out.mkdir(parents=True, exist_ok=True)
     (out / "metrics.json").write_text(json.dumps(result, indent=2))

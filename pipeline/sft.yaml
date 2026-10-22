@@ -1,7 +1,7 @@
 model_name_or_path: LiquidAI/LFM2.5-1.2B-Instruct
 
 dataset:
-- /workspace/fineprint/data/train.jsonl
+- /data/fineprint/data/train.jsonl
 conversation_field: messages
 test_size: 0.02
 train_on_completions_only: true
@@ -9,7 +9,7 @@ assistant_message_template: "<|im_start|>assistant\n"
 pad_token: "<|pad|>"
 eos_token: "<|im_end|>"
 
-attn_implementation: flash_attention_2
+attn_implementation: sdpa
 use_liger_kernel: false
 packing: true
 max_length: 4096
@@ -24,14 +24,14 @@ gradient_checkpointing: false
 optim: adamw_torch_fused
 learning_rate: 2.0e-05
 lr_scheduler_type: cosine
-warmup_ratio: 0.05
+warmup_steps: 10
 max_grad_norm: 1.0
 
 save_strategy: epoch
 eval_strategy: epoch
 save_total_limit: 1
 save_only_model: true
-output_dir: /workspace/fineprint/checkpoints/fineprint-1.2b
+output_dir: /data/fineprint/checkpoints/fineprint-1.2b
 
 logging_steps: 5
 logging_first_step: true
@@ -40,3 +40,4 @@ remove_unused_columns: false
 dataloader_num_workers: 2
 
 use_peft: false
+bf16_optimizer: false

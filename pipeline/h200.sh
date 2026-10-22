@@ -3,18 +3,15 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 HOST=${HOST:-h200}
-REMOTE=/workspace/fineprint
-IMAGE=public.ecr.aws/whitecircle/halo:hopper
-RUN="docker run --gpus all --rm --ipc=host -v $REMOTE:$REMOTE -v \$HOME/.cache/huggingface:/root/.cache/huggingface -w $REMOTE $IMAGE"
+REMOTE=/data/fineprint
 
 case "$1" in
-  setup) ssh "$HOST" "mkdir -p $REMOTE && docker pull $IMAGE" ;;
-  push) rsync -az --exclude .git --exclude models --exclude checkpoints ./ "$HOST:$REMOTE/" ;;
-  train) ssh "$HOST" "$RUN halo launch sft pipeline/sft.yaml ${*:2}" ;;
-  eval) ssh "$HOST" "$RUN python pipeline/eval.py $2 $3" ;;
+  push) rsync -rltz --exclude .git --exclude models --exclude checkpoints ./ "$HOST:$REMOTE/" ;;
+  train) ssh "$HOST" "cd /workspace && HF_HOME=/data/hf halo launch sft $REMOTE/pipeline/sft.yaml ${*:2} 2>&1 | tee $REMOTE/train.log" ;;
   pull)
-    rsync -az "$HOST:$REMOTE/eval/" eval/
-    rsync -az --exclude 'checkpoint-*' "$HOST:$REMOTE/checkpoints/fineprint-1.2b/" models/fineprint-hf/
+    CKPT=$(ssh "$HOST" "ls -d $REMOTE/checkpoints/fineprint-1.2b/checkpoint-* | sort -V | tail -1")
+    rsync -rltz --delete --exclude 'optimizer.pt' --exclude 'rng_state*' "$HOST:$CKPT/" models/fineprint-hf/
+    uv run --no-project --with huggingface_hub hf download LiquidAI/LFM2.5-1.2B-Instruct tokenizer_config.json special_tokens_map.json --local-dir models/fineprint-hf
     ;;
-  *) echo "usage: pipeline/h200.sh setup|push|train|eval <model> <name>|pull" >&2; exit 1 ;;
+  *) echo "usage: pipeline/h200.sh push|train [--key=value ...]|pull" >&2; exit 1 ;;
 esac

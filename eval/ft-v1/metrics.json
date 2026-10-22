@@ -1,0 +1,20 @@
+{
+  "server": "http://127.0.0.1:8081",
+  "rows": 1607,
+  "seconds": 308.6,
+  "json_valid": 1.0,
+  "micro_f1": 0.7784,
+  "macro_f1": 0.7875,
+  "unfair_detection_f1": 0.8232,
+  "harmless_clauses_flagged": 21,
+  "per_category_f1": {
+    "limitation_of_liability": 0.685,
+    "unilateral_termination": 0.811,
+    "unilateral_change": 0.735,
+    "content_removal": 0.696,
+    "contract_by_using": 0.81,
+    "choice_of_law": 0.96,
+    "jurisdiction": 0.938,
+    "arbitration": 0.667
+  }
+}

@@ -144,7 +144,7 @@ def extra_rows(test):
         if is_test(r["service"]):
             test.append({"text": text, "flags": r["flags"], "source": "subscription_real"})
         else:
-            rows.append(chat(PROMPT, text, {"flags": r["flags"], "plain": r["plain"]}))
+            rows += [chat(PROMPT, text, {"flags": r["flags"], "plain": r["plain"]})] * 3
     for r in optional("sub_offer.jsonl"):
         rows.append(chat(OFFER_PROMPT, " ".join(r["text"].split()), r["offer"]))
     return [r for r in rows if len(r["messages"][1]["content"]) >= 25]

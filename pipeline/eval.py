@@ -81,7 +81,7 @@ def score(examples):
 def main(url, name, limit=None):
     rows = [json.loads(line) for line in (ROOT / "data/test.jsonl").read_text().splitlines()][:limit]
     started = time.time()
-    with ThreadPoolExecutor(4) as pool:
+    with ThreadPoolExecutor(32) as pool:
         replies = list(pool.map(lambda r: ask(url, r["text"]), rows))
 
     examples = [{"text": r["text"], "gold": r["flags"], "source": r.get("source", "tos"), "reply": reply} for r, reply in zip(rows, replies)]

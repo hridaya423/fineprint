@@ -75,7 +75,7 @@ def main(source, url="http://127.0.0.1:8081", workers=8):
     flagged = [(c, a) for c, a in zip(found, answers) if a.get("flags")]
     red = [(c, a) for c, a in flagged if RED & set(a["flags"])]
     good = [(c, a) for c, a in flagged if GOOD & set(a["flags"])]
-    grade = "ACE"[min(len({f for _, a in red for f in a["flags"] if f in RED}), 2)]
+    grade = "ABCDE"[min(len({f for _, a in red for f in a["flags"] if f in RED}), 4)]
     print(f"{source}\n{len(found)} clauses in {seconds:.1f}s ({len(found) / seconds:.1f}/s). Grade {grade}. "
           f"{len(red)} red, {len(flagged) - len(red) - len(good)} standard, {len(good)} good.\n")
     for title, items in (("WATCH OUT", red), ("YOUR CONTROLS", good)):

@@ -17,7 +17,34 @@ Scored on held-out test clauses (the CLAUDETTE / UNFAIR-ToS test split plus held
 | Fineprint v2 | 0.737 | 0.824 | 34 |
 | Fineprint v5 (shipped, validation set) | 0.789 | 0.841 | — |
 
-On an M4 Pro, the Spotify Premium terms (170 clauses) take about 14 seconds. Cards stream in as each clause is read.
+The base model flags nearly every clause, so its output is useless. Fineprint flags only the traps.
+
+## Real companies
+
+| Service | Grade | What Fineprint found |
+|---|---|---|
+| Spotify Premium | D | The fee recurs "as amended from time to time" until you cancel; the trial turns paid automatically; no refunds |
+| New York Times | C | "To end your account, you must call Customer Care or use their chat", during limited hours; forced arbitration |
+| Netflix | C | "Payments are non-refundable"; they can change your plan and the price |
+
+## Speed
+
+M4 Pro, llama.cpp, Q4_K_M, flash attention, 32 parallel requests. The Spotify Premium terms (170 clauses) take about 14 seconds. The first version took 56 seconds for a page of similar size.
+
+- The model is trained on a 12-word system prompt, so no long instructions are needed for each clause.
+- Generation stops as soon as the model returns an empty list of flags, so harmless clauses cost about 5 output tokens.
+- The cards stream in as each clause is read.
+
+## Features
+
+- Side panel with streaming cards: each card has a plain-English sentence and the quoted clause. Clicking a card highlights the clause on the page.
+- A to E grade, by the number of distinct red flags.
+- Clauses of the same kind are grouped into one card, which expands to show all the evidence.
+- A document map of the page that shows where the flags are.
+- Base versus fine-tuned switch with a side-by-side comparison.
+- Sign-up forms (opt-in): a grade badge next to "I agree to the Terms" links, checked automatically.
+- "What changed?": compares two versions of a document and shows only the new flags.
+- Works offline. Nothing leaves the device.
 
 ## Data
 
@@ -44,7 +71,7 @@ On an M4 Pro, the Spotify Premium terms (170 clauses) take about 14 seconds. Car
    `llama-server -m fineprint-v5-Q4_K_M.gguf --port 8081 -np 32 -c 32768 -b 4096 -ub 2048 -fa on`
 3. Base model on port 8080, for the comparison:
    `llama-server -hf LiquidAI/LFM2.5-1.2B-Instruct-GGUF:Q8_0 --port 8080 -np 8 -c 16384 -fa on`
-4. Open `chrome://extensions`, turn on Developer mode, click "Load unpacked", and pick `chrome/`.
+4. Open `chrome://extensions`, turn on Developer mode, click "Load unpacked", and pick `chrome/`. A packaged copy is on the [v1.0 release](https://github.com/hridaya423/fineprint/releases/tag/v1.0).
 5. Open a terms page, click the Fineprint icon, pick Fine-tuned, and click "Check this page".
 
 Offline demo pages: `python3 -m http.server 8765 --bind 127.0.0.1 -d chrome/fixtures`, then open `http://127.0.0.1:8765/spotify_premium.html`, `nyt.html` or `netflix.html`.
@@ -59,3 +86,12 @@ pipeline/h200.sh pull
 pipeline/export_gguf.sh models/fineprint-hf fineprint
 python3 -I pipeline/eval.py http://127.0.0.1:8081 ft
 ```
+
+## Future scope
+
+- **Phones:** the 700 MB model fits on a phone (llama.cpp on Android, MLX on iOS). A share-sheet action and an overlay above checkout screens would grade terms inside apps, where most subscriptions are sold.
+- **More document types:** employment contracts (non-compete clauses, IP assignment, notice periods), rental leases (deposits, fees, automatic renewal), loan and credit card agreements, gym and phone contracts, insurance policies. Each one needs a labelled dataset and the same Halo fine-tune.
+- **Checkout summary:** one card above the "Start free trial" button: "7 days free → then £11.99/month · renews automatically · cancel in Settings". The data for this is already built (`sub_offer`).
+- **Trial reminders:** a calendar file made on the device, set for two days before the trial charges.
+- **Change alerts:** when a service updates its terms, show only what got worse.
+- **Other languages:** CLAUDETTE already has German, Italian and Polish labels.
